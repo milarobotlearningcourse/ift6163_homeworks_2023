@@ -4,7 +4,7 @@ import time
 from hw1.roble.infrastructure.rl_trainer import RL_Trainer
 from hw1.roble.agents.bc_agent import BCAgent
 from hw1.roble.policies.loaded_gaussian_policy import LoadedGaussianPolicy
-#test
+#test2
 class BC_Trainer(object):
 
     def __init__(self, params):
