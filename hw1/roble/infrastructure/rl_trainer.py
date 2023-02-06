@@ -61,9 +61,13 @@ class RL_Trainer(object):
         # simulation timestep, will be used for video saving
         if 'model' in dir(self.env):
             self.fps = 1/self.env.model.opt.timestep
-        else:
+        elif 'env_wrappers' in self.params:
+            self.fps = 30 # This is not actually used when using the Monitor wrapper
+        elif 'video.frames_per_second' in self.env.env.metadata.keys():
             self.fps = self.env.env.metadata['video.frames_per_second']
-
+        else:
+            self.fps = 10
+        
         #############
         ## AGENT
         #############
