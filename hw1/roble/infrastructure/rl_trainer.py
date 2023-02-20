@@ -46,6 +46,7 @@ class RL_Trainer(object):
 
         # Maximum length for episodes
         # self.params['env']['max_episode_length'] = self.params['env']['max_episode_length'] or self.env.spec.max_episode_steps
+        global MAX_VIDEO_LEN
         MAX_VIDEO_LEN = self.params['env']['max_episode_length']
 
         # Is this env continuous, or self.discrete?
