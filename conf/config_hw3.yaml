@@ -5,7 +5,7 @@ env:
     atari: True
 
 alg:
-    double_q: True
+    double_q: False
     batch_size: 64 ## The min amount of experience to collect before a training update
     train_batch_size: 64 ## training batch size used for computing gradients of q function or policy
     eval_batch_size: 4096 ## How much experience should be collected over the environment to evaluate the average reward of a policy
