@@ -65,6 +65,7 @@ class DDPGCritic(BaseCritic):
         self.q_net_target.to(ptu.device)
         self.actor = actor
         self.actor_target = copy.deepcopy(actor) 
+        self.polyak_avg = hparams['alg']['polyak_avg']
 
     def update(self, ob_no, ac_na, next_ob_no, reward_n, terminal_n):
         """
@@ -112,7 +113,11 @@ class DDPGCritic(BaseCritic):
         self.optimizer.step()
         self.learning_rate_scheduler.step()
         return {
-            'Training Loss': ptu.to_numpy(loss),
+            "Training Loss": ptu.to_numpy(loss),
+            "Q Predictions": ptu.to_numpy(q_t_values),
+            "Q Targets": ptu.to_numpy(target),
+            "Policy Actions": ptu.to_numpy(ac_na),
+            "Actor Actions": ptu.to_numpy(self.actor(ob_no))
         }
 
     def update_target_network(self):

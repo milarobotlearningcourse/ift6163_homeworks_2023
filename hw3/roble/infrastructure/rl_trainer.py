@@ -188,6 +188,8 @@ class RL_Trainer(object):
                 print('\nBeginning logging procedure...')
                 if isinstance(self.agent, DQNAgent):
                     self.perform_dqn_logging(itr, all_logs)
+                elif isinstance(self.agent, DDPGAgent):
+                    self.perform_ddpg_logging(itr, all_logs)
                 else:
                     self.perform_logging(itr, paths, eval_policy, train_video_paths, all_logs)
 
@@ -254,42 +256,66 @@ class RL_Trainer(object):
 
         self.logger.flush()
         
-    def perform_ddpg_logging(self):
-        
+    def perform_ddpg_logging(self, itr,all_logs):        
         logs = OrderedDict()
-        logs['QF Loss'] = np.mean(ptu.get_numpy(qf_loss))
-        logs['Policy Loss'] = np.mean(ptu.get_numpy(
-            policy_loss
-        ))
-        logs['Raw Policy Loss'] = np.mean(ptu.get_numpy(
-            raw_policy_loss
-        ))
-        logs['Preactivation Policy Loss'] = (
-                logs['Policy Loss'] -
-                logs['Raw Policy Loss']
-        )
-        logs.update(create_stats_ordered_dict(
-            'Q Predictions',
-            ptu.get_numpy(q_pred),
-        ))
-        logs.update(create_stats_ordered_dict(
-            'Q Targets',
-            ptu.get_numpy(q_target),
-        ))
-        logs.update(create_stats_ordered_dict(
-            'Bellman Errors',
-            ptu.get_numpy(bellman_errors),
-        ))
-        logs.update(create_stats_ordered_dict(
-            'Policy Action',
-            ptu.get_numpy(policy_actions),
-        ))
+        logs["Train_EnvstepsSoFar"] = self.agent.t
+        n = 5
+        if len(self.agent.rewards) > 0:
+            self.mean_episode_reward = np.mean(np.array(self.agent.rewards)[-n:])
+            
+            logs["Train_AverageReturn"] = self.mean_episode_reward
+            logs["Train_CurrentReturn"] = self.agent.rewards[-1]
+            
+        if len(self.agent.rewards) > n:
+            self.best_mean_episode_reward = max(self.best_mean_episode_reward, self.mean_episode_reward)
+            
+            logs["Train_BestReturn"] = self.best_mean_episode_reward
+            
+        if len(self.agent.rewards) > 5 * n:   
+            self.agent.rewards = self.agent.rewards[n:]
+            
+        if self.start_time is not None:
+            time_since_start = (time.time() - self.start_time)
+            logs["TimeSinceStart"] = time_since_start
         
+        Q_predictions = []
+        Q_targets = []
+        policy_actions_mean = []
+        policy_actions_std = []
+        actor_actions_mean = []
+        critic_loss = []
+        actor_loss = []
+        print_all_logs = True
+        for log in all_logs:
+            if len(log) > 0:
+                print_all_logs = True
+                Q_predictions.append(np.mean(log["Critic"]["Q Predictions"]))
+                Q_targets.append(np.mean((log["Critic"]["Q Targets"])))
+                policy_actions_mean.append(np.mean((log["Critic"]["Policy Actions"])))
+                policy_actions_std.append(np.std((log["Critic"]["Policy Actions"])))
+                actor_actions_mean.append(np.mean((log["Critic"]["Actor Actions"])))
+                critic_loss.append(log["Critic"]["Training Loss"])
+                
+                if "Actor" in log.keys():
+                    actor_loss.append(log["Actor"])
+                
+        if print_all_logs:
+            logs["Q_Predictions"] = np.mean(np.array(Q_predictions))
+            logs["Q_Targets"] = np.mean(np.array(Q_targets))
+            logs["Policy_Actions_Mean"] = np.mean(np.array(policy_actions_mean))
+            logs["Policy_Actions_Std"] = np.mean(np.array(policy_actions_std))
+            logs["Actor_Actions"] = np.mean(np.array(actor_actions_mean))
+            logs["Critic_Loss"] = np.mean(np.array(critic_loss))
+            
+            if len(actor_loss) > 0:
+                logs["Actor_Loss"] = np.mean(np.array(actor_loss))
+            
         for key, value in logs.items():
-                print('{} : {}'.format(key, value))
-                self.logger.log_scalar(value, key, itr)
+            print('{} : {}'.format(key, value))
+            self.logger.log_scalar(value, key, self.agent.t)
         self.logger.log_file(itr, logs)
         print('Done DDPG logging...\n\n')
+        self.logger.flush()
 
     def perform_logging(self, itr, paths, eval_policy, train_video_paths, all_logs):
         
