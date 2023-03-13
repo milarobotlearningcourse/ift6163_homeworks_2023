@@ -29,7 +29,7 @@ class SACCritic(DDPGCritic):
                 nothing
         """
         ob_no = ptu.from_numpy(ob_no)
-        ac_na = ptu.from_numpy(ac_na).to(torch.long)
+        ac_na = ptu.from_numpy(ac_na)
         next_ob_no = ptu.from_numpy(next_ob_no)
         reward_n = ptu.from_numpy(reward_n)
         terminal_n = ptu.from_numpy(terminal_n)
